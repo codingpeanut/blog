@@ -1,47 +1,35 @@
-name: GitHub Page
+name: deploy
 
 on:
     push:
-        branches:
-            - master # 當 master 分支更新時觸發
+    workflow_dispatch:
+    schedule:
+        # Runs everyday at 8:00 AM
+        - cron: "0 0 * * *"
 
 jobs:
-    deploy:
-        runs-on: ubuntu-18.04
+    build:
+        runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
+            - name: Checkout
+              uses: actions/checkout@v2
               with:
-                  submodules: true # 複製子模組
-                  fetch-depth: 0 # 複製所有歷史記錄
+                  submodules: true
+                  fetch-depth: 0
 
             - name: Setup Hugo
               uses: peaceiris/actions-hugo@v2
               with:
-                  hugo-version: "0.87.0" # Hugo 版本
-                  extended: true # 使用擴展版的 Hugo（需要插件支援）
+                  hugo-version: "latest"
 
-            - name: Cache resources # 快取資源以加快建構速度
-              uses: actions/cache@v2
-              with:
-                  path: resources
-                  # 檢查內容檔案的變化
-                  key: ${{ runner.os }}-hugocache-${{ hashFiles('content/**/*') }}
-                  restore-keys: ${{ runner.os }}-hugocache-
+            - name: Build Web
+              run: hugo
 
-            - name: Build # 產生網站、刪除未使用的資源檔案、最小化空白
-              run: hugo --minify --gc
-
-            - name: Deploy # 部署到 GitHub Page
+            - name: Deploy Web
               uses: peaceiris/actions-gh-pages@v3
               with:
-                  # 如果在同一個存儲庫內，請使用 github_token，並註解掉 deploy_key
-                  # github_token: ${{ secrets.GITHUB_TOKEN }}
-                  deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-
-                  # 如果在不同的存儲庫內，請取消註解
-                  external_repository: codingpeanut/codingpeanut.github.io # 你的 GitHub Page 存儲庫 example/example.github.io
-
-                  publish_dir: ./public
-                  user_name: "github-actions[bot]"
-                  user_email: "github-actions[bot]@users.noreply.github.com"
-                  full_commit_message: 從 ${{ github.repository }}@${{ github.sha }} 部署 🚀
+                  PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+                  EXTERNAL_REPOSITORY: codingpeanut/codingpeanut.github.io
+                  PUBLISH_BRANCH: master
+                  PUBLISH_DIR: ./public
+                  commit_message: ${{ github.event.head_commit.message }}
