@@ -47,3 +47,9 @@ jobs:
                   folder: public
                   clean: true
                   single-commit: true
+                  deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+                  external_repository: codingpeanut/codingpeanut.github.io
+                  publish_dir: ./public
+                  user_name: "github-actions[bot]"
+                  user_email: "github-actions[bot]@users.noreply.github.com"
+                  full_commit_message: Deploy from ${{ github.repository }}@${{ github.sha }} 🚀
