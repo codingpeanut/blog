@@ -1,55 +1,47 @@
-name: Deploy to Github Pages
+name: GitHub Page
 
 on:
     push:
-        branches: [master]
-    pull_request:
-        branches: [master]
+        branches:
+            - master # 當 master 分支更新時觸發
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
-
-        permissions:
-            # Give the default GITHUB_TOKEN write permission to commit and push the
-            # added or changed files to the repository.
-            contents: write
-
+    deploy:
+        runs-on: ubuntu-18.04
         steps:
-            - uses: actions/checkout@v3
-
-            - name: Cache Hugo resources
-              uses: actions/cache@v3
-              env:
-                  cache-name: cache-hugo-resources
+            - uses: actions/checkout@v2
               with:
-                  path: resources
-                  key: ${{ env.cache-name }}
-
-            - uses: actions/setup-go@v4
-              with:
-                  go-version: "^1.17.0"
-            - run: go version
+                  submodules: true # 複製子模組
+                  fetch-depth: 0 # 複製所有歷史記錄
 
             - name: Setup Hugo
               uses: peaceiris/actions-hugo@v2
               with:
-                  hugo-version: "latest"
-                  extended: true
+                  hugo-version: "0.87.0" # Hugo 版本
+                  extended: true # 使用擴展版的 Hugo（需要插件支援）
 
-            - name: Build
+            - name: Cache resources # 快取資源以加快建構速度
+              uses: actions/cache@v2
+              with:
+                  path: resources
+                  # 檢查內容檔案的變化
+                  key: ${{ runner.os }}-hugocache-${{ hashFiles('content/**/*') }}
+                  restore-keys: ${{ runner.os }}-hugocache-
+
+            - name: Build # 產生網站、刪除未使用的資源檔案、最小化空白
               run: hugo --minify --gc
 
-            - name: Deploy 🚀
-              uses: JamesIves/github-pages-deploy-action@v4
+            - name: Deploy # 部署到 GitHub Page
+              uses: peaceiris/actions-gh-pages@v3
               with:
-                  branch: gh-pages
-                  folder: public
-                  clean: true
-                  single-commit: true
+                  # 如果在同一個存儲庫內，請使用 github_token，並註解掉 deploy_key
+                  # github_token: ${{ secrets.GITHUB_TOKEN }}
                   deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-                  external_repository: codingpeanut/codingpeanut.github.io
+
+                  # 如果在不同的存儲庫內，請取消註解
+                  external_repository: codingpeanut/codingpeanut.github.io # 你的 GitHub Page 存儲庫 example/example.github.io
+
                   publish_dir: ./public
                   user_name: "github-actions[bot]"
                   user_email: "github-actions[bot]@users.noreply.github.com"
-                  full_commit_message: Deploy from ${{ github.repository }}@${{ github.sha }} 🚀
+                  full_commit_message: 從 ${{ github.repository }}@${{ github.sha }} 部署 🚀
